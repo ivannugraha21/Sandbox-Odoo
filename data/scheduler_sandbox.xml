@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <record id="ir_cron_data_sandbox" model="ir.cron">
+            <field name="name">Sandbox Scheduler</field>
+            <field name="model_id" ref="model_api_scheduler"/>
+            <field name="type">ir.actions.server</field>
+            <field name="state">code</field>
+            <field name="code">model.cron_schedule()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            
+            <field name="numbercall">-1</field>
+			<field name="nextcall" eval="(DateTime.now() + timedelta(days=1)).strftime('%Y-%m-%d 01:00:00')" /> 
+            <!--
+            <field name="nextcall" eval="(DateTime.now() + timedelta(days=0)).strftime('%Y-%m-%d 19:00:00')" /> 
+            -->
+            <!-- <field name="nextcall" eval="(DateTime.now().replace(hour=19, minute=0) + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')" /> -->
+        </record>
+
+    </data>
+</odoo>

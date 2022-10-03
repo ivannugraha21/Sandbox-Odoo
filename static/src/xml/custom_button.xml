@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-extend="KanbanView.buttons" t-name="saleProductUpdates.buttons">
+        <t t-jquery="button" t-operation="after">
+            <t t-if="widget.modelName == 'product.template'">
+                <button name="action_update_product" id="saleProductUpdate" class="btn btn-primary o-kanban-button-new" type="object">
+                    My Button
+                </button>
+            </t>
+        </t>
+    </t>
+
+    <t t-extend="ListView.buttons" t-name="saleProductUpdate.buttons">
+        <t t-jquery="button" t-operation="after">
+            <t t-if="widget.modelName == 'product.template'">
+                <button name="action_update_product" id="saleProductUpdate" class="btn btn-primary o-kanban-button-new" style="margin-left: 5px;">
+                    Update
+                </button>
+            </t>
+        </t>
+    </t>
+</templates>

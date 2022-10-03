@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_company_form_inherit_sandbox_api" model="ir.ui.view">
+        <field name="name">res.company.form.inherit.sandbox.api</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Sandbox API" name="general_info">
+                    <group>
+                        <group>
+                            <field name="sandbox_key" string="Api Key"/>
+                            <field name="sandbox_id" string="Username"/>
+                            <field name="sandbox_pw" string="Password" password="True"/>
+                            <button name="action_update_manual" class="oe_highlight" string="Update Manual" type="object"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
