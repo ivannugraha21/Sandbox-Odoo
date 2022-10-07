@@ -8,14 +8,9 @@ import math
 class SchedulerSandbox(models.Model):
 	_name = 'api.scheduler'
 
-
 	def updateProduct(self, idk):
 		# print("HAHAHAHA")
 		# token = self.env.user.company_id.id
-
-		# print("====================================")
-		# print(token)
-		# print("====================================")
 		print('=======Get Active Company=======')
 		print('Company id => ',self.env.company.id)
 		print('Company name => ', self.env.company.name)
@@ -24,17 +19,19 @@ class SchedulerSandbox(models.Model):
 		return self.env.company
 
 
-
-	def cron_schedule(self):
+	def cron_schedule(self, uid=False):
 		print(' Sandbox Cron Job')
 		print('========================================================================')
-
+		# If uid isn't False then its manual update from button
+		domain = []
+		if uid != False:
+			domain = [('id', '=', uid)]
 		# Get All User Data
-		Users = http.request.env['res.users'].search([])
-		print(Users)
+		Users = http.request.env['res.users'].search(domain)
+		#print(Users)
 
 		for user in Users:
-			print(user.name)
+			print('User : ', user.name)
 			# Define variable 
 			apiUser = user.sandbox_id
 			apiPass = user.sandbox_pw
@@ -44,11 +41,11 @@ class SchedulerSandbox(models.Model):
 			token = self.getTokenV1(apiKey, apiUser, apiPass)
 			if token != False:
 				# If get token success create / update company by user
-				print(token)
+				print('Token : ', token)
 				# Get List Merchant from token
 				merchants = self.getMerchantListFromToken(apiKey, token)
 				if merchants != False:
-					print(merchants)
+					print('Merchant : ', merchants)
 					# If get merchants list success, check if merchant exist in odoo company
 					# Get data company first then loop, domain by email
 					companies = http.request.env['res.company'].search([('email', '=', apiUser)])
@@ -80,7 +77,17 @@ class SchedulerSandbox(models.Model):
 							# Add New company_id to merchant_ids
 							merchant_ids.append(NewCompany.id)
 							company_id = NewCompany.id
-							#
+							# Set CoA Template for new Company, country_id 100 for Indonesia
+							coaTemplate = http.request.env['account.chart.template'].search([('country_id', '=', 100)], limit=1)
+							coaTemplate._load(11, 11, NewCompany)
+							# Set default Outstanding for automatic paid invoice
+							journals = http.request.env['account.journal'].search([('company_id', '=', NewCompany.id)])
+							for journal in journals:
+								if journal.type == 'bank' or journal.type == 'cash':
+									journal.inbound_payment_method_line_ids[0].sudo().write({'payment_account_id': journal.default_account_id.id})
+									journal.outbound_payment_method_line_ids[0].sudo().write({'payment_account_id': journal.default_account_id.id})
+							# You can create new journal here and set the inbound/outbound like above code
+
 
 						# Login V2 disini?
 						tokenMerchant = self.getTokenV2(apiKey, merchant['email'], merchant['id'])
@@ -95,7 +102,7 @@ class SchedulerSandbox(models.Model):
 									taxes = self.cronTaxes(apiKey, tokenMerchant, company_id)
 									if taxes != False:
 										orders = self.cronOrders(apiKey, tokenMerchant, company_id, user.partner_id.id)
-										print('Cron Job ', merchant['full_name'], ' success!!!')
+										print('Cron Job : ', merchant['full_name'], ' success!!!')
 									else:
 										print('Error when access orders data!')
 								else:
@@ -109,8 +116,8 @@ class SchedulerSandbox(models.Model):
 
 
 					# Update Allowed Company in User
-					print(merchant_ids)
-					print(merchant_ids[0])
+					#print(merchant_ids)
+					#print(merchant_ids[0])
 					user.sudo().write({
 						'company_id': merchant_ids[0],
 						'company_ids': [(6,0, merchant_ids)],
@@ -281,7 +288,7 @@ class SchedulerSandbox(models.Model):
 							'company_id': company_id,
 						})
 
-						print('Customer Baru : ', data['name'])
+						print('#### Customer Baru : ', data['name'])
 					else:
 						# Update if data exist
 						updateProduct = http.request.env['res.partner'].search([('customer_id', '=', data['id'])], limit=1)
@@ -295,7 +302,7 @@ class SchedulerSandbox(models.Model):
 							'partner_status': 'customer',
 							'company_id': company_id,
 						})
-						print('Customer Edit : ', data['name'])	
+						print('#### Customer Edit : ', data['name'])	
 
 		else:
 			res = False
@@ -314,22 +321,43 @@ class SchedulerSandbox(models.Model):
 		if response.status_code == 200:
 			res = response.json()
 			# Payment Fee for customer using xendit payment method
-			getPaymentFee = http.request.env['product.product'].search([('company_id', '=', company_id), ('product_id', '=', 0)])
+			getPaymentFee = http.request.env['product.product'].search([('company_id', '=', company_id), ('product_payments', '=', 1)])
 			if not getPaymentFee:
 				insertPaymentFee = http.request.env['product.product'].sudo().create({
 					'name': 'Payment Fee',
 					'list_price': float(0),
 					#'merchant_id': int(data['merchant_id']),
 					#'brand_id': int(data['brand']['id']),
-					'product_id': 0,	
+					#'product_id': 0,	
 					'default_code': False,	
 					'taxes_id': False,
 					'company_id': company_id,
 					'detailed_type': 'service',
-					'product_discount': 0
+					'product_discount': 0,
+					'product_payments': 1,
 				})
-				print('==================== Data Payment Sudah ditambahkan')
-				print('===================================')
+				print('#### Data Payment Fee Sudah ditambahkan')
+				print('========================================================================')
+			print(getPaymentFee)
+			#
+			# Delivery Fee for customer using shipper api
+			getDeliveryFee = http.request.env['product.product'].search([('company_id', '=', company_id), ('product_payments', '=', 2)])
+			if not getDeliveryFee:
+				insertDeliveryFee = http.request.env['product.product'].sudo().create({
+					'name': 'Delivery Fee',
+					'list_price': float(0),
+					#'merchant_id': int(data['merchant_id']),
+					#'brand_id': int(data['brand']['id']),
+					#'product_id': 0,	
+					'default_code': False,	
+					'taxes_id': False,
+					'company_id': company_id,
+					'detailed_type': 'service',
+					'product_discount': 0,
+					'product_payments': 2,
+				})
+				print('#### Data Payment Delivery Fee Sudah ditambahkan')
+				print('========================================================================')
 			print(getPaymentFee)
 
 			#
@@ -357,7 +385,7 @@ class SchedulerSandbox(models.Model):
 						'detailed_type': 'product',
 						'product_discount': data['product_detail']['discount']
 					})
-					print('Produk Baru : ', data['product_name'], ' Diskon : ', insertProduct['product_discount'])
+					print('#### Produk Baru : ', data['product_name'], ' Diskon : ', insertProduct['product_discount'])
 				else:
 					# Update if data exist
 					updateProduct = http.request.env['product.product'].search([('product_id', '=', data['product_id'])], limit=1)
@@ -373,7 +401,7 @@ class SchedulerSandbox(models.Model):
 						'detailed_type': 'product',
 						'product_discount': data['product_detail']['discount']
 					})
-					print('Produk Edit : ', data['product_name'], ' Diskon : ', updateProduct['product_discount'])		
+					print('#### Produk Edit : ', data['product_name'], ' Diskon : ', updateProduct['product_discount'])		
 		else:
 			res = False
 			print('Error : Terjadi error di fungsi product')
@@ -406,7 +434,7 @@ class SchedulerSandbox(models.Model):
 			tax = int(res['tax'])
 			service = int(res['service'])
 			getTax = http.request.env['account.tax'].search([('sandbox_tax', '=', True), ('company_id', '=', company_id)], limit=1)
-			print('===================================== CEK Tax : ', len(getTax))
+			#print('===================================== CEK Tax : ', len(getTax))
 			if len(getTax) != 0:
 				#
 				getTax.sudo().write({
@@ -424,7 +452,7 @@ class SchedulerSandbox(models.Model):
 				})
 			# Insert / Update Service
 			getService = http.request.env['account.tax'].search([('sandbox_service', '=', True), ('company_id', '=', company_id)], limit=1)
-			print('===================================== CEK Services : ', len(getService))
+			#print('===================================== CEK Services : ', len(getService))
 			if len(getService) != 0:
 				#
 				getService.sudo().write({
@@ -440,6 +468,18 @@ class SchedulerSandbox(models.Model):
 					'sandbox_service': True,
 					'company_id': company_id,
 				}) 
+			# Create cash rounding rule for Taxes
+			# Probably global data, so all company can use 1 data for rounding
+			getRounding = http.request.env['account.cash.rounding'].search([])
+			if len(getRounding) == 0:
+				insertRounding = http.request.env['account.cash.rounding'].sudo().create({
+					'name': 'Pembulatan Pajak',
+					'rounding': 1,
+					'strategy': 'biggest_tax',
+					'rounding_method': 'HALF-UP',
+					#'company_id': company_id,
+				}) 
+
 		else:
 			res = False
 			print('Error : Terjadi error di fungsi taxes')
@@ -472,29 +512,29 @@ class SchedulerSandbox(models.Model):
 			#
 			getTax = http.request.env['account.tax'].search([('sandbox_tax', '=', True), ('company_id', '=', company_id)])
 			getService = http.request.env['account.tax'].search([('sandbox_service', '=', True), ('company_id', '=', company_id)])
-			# Default customer, added when getData customer from Sandbox API
-			customer = http.request.env['res.partner'].search([('customer_id', '=', 0), ('company_id', '=', company_id)], limit=1).id
 			#
-			res = res['data']
-			#res = reversed(res['data'])
+			#res = res['data']
+			res = reversed(res['data'])
 			# Loop data from API
 
-			# Ambil 5 data aja buat nyoba dulu
-			array = []
-			i = 0
+			# Ambil 10 data aja buat nyoba dulu
+			# array = []
+			# i = 0
+			# for data in res:
+			# 	if i < 10:
+			# 		array.append(data)
+			# 		i = i + 1
+			# 	else:
+			# 		break
+			# array = reversed(array)
+
+
 			for data in res:
-				if i < 5:
-					array.append(data)
-					i = i + 1
-				else:
-					break
-			array = reversed(array)
-
-
-			#for data in res:
-			for data in array:
+			#for data in array:
 				# Boolean to filter data, add new data if its true
 				addNew = True
+				# Default customer, added when getData customer from Sandbox API
+				customer = http.request.env['res.partner'].search([('customer_id', '=', 0), ('company_id', '=', company_id)], limit=1).id
 				# Check if data already exist in Odoo
 				for order in getOrders:
 					if data['order_number'] == order['name']:
@@ -558,7 +598,7 @@ class SchedulerSandbox(models.Model):
 							# Add New Product to oder.orderline
 							orderlineData = {
 								'order_partner_id': customer,
-								'product_id': insertProduct['id'],
+								'product_id': createProduct['id'],
 								'product_uom_qty': order['product_qty'],
 								'price_unit': order['product_price'],
 								'tax_id': [(6,0, [getTax.id, getService.id])],
@@ -593,7 +633,7 @@ class SchedulerSandbox(models.Model):
 							# If Product didnt exist in Odoo add New
 							if subProduct == True:		
 								# Create new product	
-								insertProduct = http.request.env['product.product'].sudo().create({
+								createProduct = http.request.env['product.product'].sudo().create({
 									'name': subOrder['product_name'],
 									'list_price': float(subOrder['product_price']),
 									'merchant_id': int(getCompany['sandbox_merchant_id']),								
@@ -605,7 +645,7 @@ class SchedulerSandbox(models.Model):
 								# Add New Product to oder.orderline
 								orderlineData = {
 									'order_partner_id': customer,
-									'product_id': insertProduct['id'],
+									'product_id': createProduct['id'],
 									'product_uom_qty': subOrder['product_qty'],
 									'price_unit': subOrder['product_price'],
 									'tax_id': [(6,0, [getTax.id, getService.id])],
@@ -620,7 +660,7 @@ class SchedulerSandbox(models.Model):
 					sectionLine = (0, 0, {'display_type': 'line_section', 'name': 'Biaya Lainnya',})
 					orderline.append(sectionLine)
 					# Add payment fee to product and get it in product list Odoo
-					payment_fee = http.request.env['product.product'].search([('company_id', '=', company_id), ('product_id', '=', 0)], limit=1)
+					payment_fee = http.request.env['product.product'].search([('company_id', '=', company_id), ('product_payments', '=', 1)], limit=1)
 					# Get Payment Method from sandbox by order payment type
 					PaymentMethod = self.getPaymentMethod(apiKey, getCompany.sandbox_merchant_id, data['payment_type'])
 					if PaymentMethod != False:
@@ -643,13 +683,47 @@ class SchedulerSandbox(models.Model):
 							'order_partner_id': customer,
 							'product_id': payment_fee.id,
 							'product_uom_qty': 1,
-							'price_unit': math.ceil(payment_price),
+							'price_unit': math.ceil(totalPayment),
 							'tax_id': [],
 							'name': str(PaymentMethod['payment_name']) + ' - ' + str(getCompany.sandbox_payment_fee)
 						}
 						orderline.append((0,0,PaymentFee))
 					# ====================================================================================
-					# Set other fields before add Order data
+					# Check Order Type ===================================================================
+					# ====================================================================================
+					# If order type is "DELIVERY", add delivery cost from Shipper
+					if data['order_type'] == 'DELIVERY':
+						# Get Delivery Fee from product
+						delivery_fee = http.request.env['product.product'].search([('company_id', '=', company_id), ('product_payments', '=', 2)], limit=1)
+						
+						# Get Shipping Data
+						getShipping = self.getShipperData(apiKey, data['shipper_order_id'])
+						#
+						if getShipping != False:
+							# Add payment fee to order line
+							dataShipping = getShipping['data']['order']['detail']
+							DeliveryFee = {
+								'order_partner_id': customer,
+								'product_id': delivery_fee.id,
+								'product_uom_qty': 1,
+								'price_unit': int(dataShipping['courier']['rate']['value']),
+								'tax_id': [],
+								'name': str(dataShipping['courier']['name']) + ' - ' + str(dataShipping['courier']['rate_name'])
+							}
+							orderline.append((0,0,DeliveryFee))
+						else:
+							DeliveryFee = {
+								'order_partner_id': customer,
+								'product_id': delivery_fee.id,
+								'product_uom_qty': 1,
+								'price_unit': 0,
+								'tax_id': [],
+								'name': 'Error saat menagmbil data Shipper!'
+							}
+							orderline.append((0,0,DeliveryFee))
+
+					# ====================================================================================
+					# Set other fields before create Order data
 					# ====================================================================================
 					# Set Order Date / Time delta decrease 7 hour to show id timezone in odoo
 					dateOrder = datetime.strptime(data['payment_date'], '%Y-%m-%d %H:%M:%S')
@@ -673,17 +747,26 @@ class SchedulerSandbox(models.Model):
 					}
 					# Create order
 					order = http.request.env['sale.order'].sudo().create(dataOrder)
-					print('Data Order berhasil ditambahkan : ', order.name)
+					print('#### Data Order berhasil ditambahkan : ', order.name)
 					# Create Invoice
-					invoice = self.createInvoice(order, getCompany)
+					invoice = self.createInvoice(order, getCompany, data)
 					# Check if order is not cancelled
-					if len(order.order_line) != 0 and status != 'cancel':
+					#if len(order.order_line) != 0 and status != 'cancel':
+					if status != 'cancel':
 						# Validate invoice
 						invoice._post();
+						# Sometime invoice name change, so check it
+						# If the name changed, update to sandbox name again
+						#print('========== Invoice Number : ', invoice.name)
+						if invoice.name != data['invoice_number']:
+							invoice.sudo().write({'name' : data['invoice_number']})
 						# Automate payment for posted invoice
 						payInvoice = self.payInvoice(invoice, getCompany, data['payment_channel'])
 						# Check stock product
 						stock = self.checkStockProduct(order, getCompany, user_id)
+					else:
+						# Cancel invoice
+						invoice.button_cancel();
 					# =================================================================================
 		else:
 			res = False
@@ -748,7 +831,7 @@ class SchedulerSandbox(models.Model):
 		) 
 
 
-	def createInvoice(self, order, company):
+	def createInvoice(self, order, company, data):
 		# ================================================================================================
 		# Create invoice
 		# ================================================================================================
@@ -767,7 +850,13 @@ class SchedulerSandbox(models.Model):
 					'sale_line_ids': [(6, 0, [line.id])],
 				}
 			invoice_lines.append((0, 0, vals))
-		#
+		# Get Invoice Journal 
+		journal = http.request.env['account.journal'].sudo().search([('company_id', '=', company.id), ('type', '=', 'sale')], limit=1)
+		#print('=================== INI DATA JURNAL', journal)
+		# Get Rounding Method
+		rounding = http.request.env['account.cash.rounding'].search([], limit=1)
+		#print('================== Ini data rounding : ', rounding.name)
+		# Create Invoice
 		invoice = http.request.env['account.move'].sudo().create({
 			'ref': order.client_order_ref,
 			'move_type': 'out_invoice',
@@ -778,9 +867,10 @@ class SchedulerSandbox(models.Model):
 			'currency_id': order.pricelist_id.currency_id.id,
 			'invoice_line_ids': invoice_lines,
 			'company_id': company.id,
-			#'name': data['invoice_number'],
-			'journal_id': 10,
-			'invoice_cash_rounding_id': 1,
+			'name': data['invoice_number'],
+			'payment_reference': data['invoice_number'],
+			'journal_id': journal.id,
+			'invoice_cash_rounding_id': rounding.id,
 		})
 
 		return invoice
@@ -847,5 +937,24 @@ class SchedulerSandbox(models.Model):
 		invoice.js_assign_outstanding_line(receivable_line.id)
 
 
-
+	def getShipperData(self, apiKey, shipper_id):
+		# Post ID to get data shipper
+		headers = {
+			'api_key': apiKey,
+			#'token': token,
+			'content-type': 'application/json'
+		}
+		body = {}
+		url = "https://sandbox-api.stagingapps.net/shipper/tracking-shipment-status?id=" + str(shipper_id)
+		response = requests.get(url, headers=headers, data=json.dumps(body))		        
+		if response.status_code == 200:
+			data = response.json()
+			if data['status'] != 'fail':
+				data = data
+			else:
+				data = False
+		else:
+			data = False
+		#
+		return data
 

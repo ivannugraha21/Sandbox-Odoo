@@ -17,7 +17,6 @@ from odoo.addons.payment import utils as payment_utils
 class SaleOrder(models.Model):
 	_inherit = 'sale.order'
 
-
 	order_type = fields.Char(string="Type Order from Sandbox")
 
 

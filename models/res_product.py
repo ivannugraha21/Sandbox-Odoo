@@ -10,3 +10,4 @@ class ResProduct(models.Model):
 	brand_id = fields.Integer(string="Brand id from Sandbox")
 	product_id = fields.Integer(string="Product id from Sandbox")
 	product_discount = fields.Integer(string="Product discount", default=0)
+	product_payments = fields.Integer(string="Other payment. eg: xendit / delivery")

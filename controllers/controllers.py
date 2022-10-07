@@ -106,203 +106,6 @@ class RestApiProducts(http.Controller):
 				elif data['status'] == "OUT":
 					outcome = outcome + int(data['amount'])
 
-			# ==========================================================================================
-			# TEST OTOMATISASI PEMBAYARAN INVOICE
-			# ==========================================================================================
-
-			invoice = http.request.env['account.move'].sudo().search([('id', '=', 3238)], limit=1)
-			print('Invoice : ', invoice.name)
-			print('Invoice Data : ', invoice.date)
-			print('Amount : ', invoice.amount_total)
-			print('Invoice State : ', invoice.state)
-			print('Payment ID : ', invoice.payment_id)
-			
-			print('=============================================================================')
-			print('=============================================================================')
-			payments = http.request.env['account.payment'].sudo().search([('id', '=', 4)], limit=1)
-			print('Payment Type : ', payments.payment_type)
-			print('Partner Type : ', payments.partner_type)
-			print('Payment ID : ', payments.payment_id)
-			print('Payment method ID : ', payments.payment_method_id)
-			print('Hahaha : ', payments.purchase_id)
-			
-			print('Nama Partner : ', payments.partner_id.name)
-			print('ID Partner : ', payments.partner_id.id)
-			print('Amount : ', payments.amount)
-			print('Journal ID : ', payments.journal_id)
-			print('Comapany ID : ', payments.company_id)
-			print('Currency ID : ', payments.currency_id)
-			print('Move ID : ', payments.move_id)
-			print('Move ID : ', payments.move_type)
-			print('State : ', payments.state)
-			print('Reconcile : ', payments.reconciled_bill_ids)
-			print('=============================================================================')
-			print('=============================================================================')
-			move = http.request.env['account.move'].sudo().search([('id', '=', 3251)], limit=1)
-			print('Move : ', move.name)
-			print('Move : ', move.state)
-			
-			
-			
-			getCompany = http.request.env['res.company'].sudo().search([('id', '=', 2)])
-			print(getCompany)
-			#Payment = http.request.env['account.payment'].search([])
-
-# Journal ID di odoo 16, entar cari carabuat ambil jurnal per company, habis multicompany saat cron job
-## partner_id berdasarkan partner_id di invoice
-## amount berdasarkan total harga di invoice
-			
-			# Get Journal
-			journal_cash = http.request.env['account.journal'].sudo().search([('company_id', '=', getCompany.id), ('type', '=', 'cash')], limit=1)
-			print(journal_cash)
-
-			#Payment = http.request.env['account.payment'].with_context(default_invoice_ids=[(4, invoice.id, False)])
-			# Payment = http.request.env['account.payment.register'].with_context({'active_model': 'account.move', 'active_ids': invoice.invoice_line_ids})
-			# Payment = Payment.action_create_payments()
-			# print('Invoice Line IDS : ', invoice.invoice_line_ids)
-			# print(Payment)
-			#testPayment = http.request.env['account.payment'].sudo().create({
-			# testPayment = Payment.create({
-			# 	'date': invoice.date,
-			# 	# 'payment_method_id': self.inbound_payment_method.id,
-			# 	'payment_type': 'inbound',
-			# 	'partner_type': 'customer',
-			# 	'partner_id': invoice.partner_id.id,
-			# 	'amount': int(invoice.amount_total),
-			# 	'company_id': getCompany.id,
-			# 	'currency_id': getCompany.currency_id.id,
-			# 	'journal_id ': journal_cash.id,
-			# 	#'payment_difference_handling': 'reconcile',
-			# 	# 'writeoff_account_id': self.diff_income_account.id,
-			# }).action_create_payments()
-
-			# testPayment.post()
-
-
-# Info
-# Ambil data invoice yang mau dibayar dulu, 
-# Buat data di account.payment berdasarkan data invoice tadi
-# Data payment dan invoice belum direlasikan, untuk itu ambil receivable_line dari data account.payment tadi
-# Tambahkan data receivable_line ke invoice.js_assign_outstanding_line() untuk merelasi keuda data 
-
-			Payment = http.request.env['account.payment'].with_context(default_invoice_ids=[(4, invoice.id, False)])
-			payment = Payment.create({
-			    'date': invoice.date,
-			    'payment_method_id': 1,
-			    'payment_type': 'inbound',
-			    'partner_type': 'customer',
-			    'partner_id': invoice.partner_id.id,
-			    'amount': int(invoice.amount_total),
-			    'journal_id': journal_cash.id,
-			    'company_id': getCompany.id,
-			    'currency_id': getCompany.currency_id.id,
-			    #'payment_difference_handling': 'reconcile',
-			    #'writeoff_account_id': self.diff_income_account.id,
-			})
-			print(payment)
-			payment.action_post()
-
-			receivable_line = payment.line_ids.filtered('credit')
-			print('============================= ReLi : ', receivable_line)
-
-			invoice.js_assign_outstanding_line(receivable_line.id)
-
-
-
-
-
-
-
-
-
-
-
-
-			# ==========================================================================================
-			# ==========================================================================================
-
-			# users = http.request.env['res.users'].sudo().search([('company_ids', 'in', 2)])
-			# print('==================== Output : ', users)
-
-			# for user in users:
-			# 	print('Nama : ', user.name, ', Res Partner ID : ', user.partner_id.id)
-
-			# ==========================================================================================
-			# ==========================================================================================
-			#Send Email Berhasil
-			# odoobot_id = http.request.env['res.users'].sudo().search([('id', '=', 1), ('active','=',False)], limit=1).partner_id.id
-			
-			# channel = http.request.env['mail.channel'].sudo().search([
-			# 	('name', '=', 'Stock Persediaan'),
-			# 	('channel_partner_ids', 'in', [2])
-			# ], limit=1)
-
-			# if not channel:
-			# 	# create a new channel
-			# 	channel = http.request.env['mail.channel'].with_context(mail_create_nosubscribe=True).sudo().create({
-			# 		'channel_partner_ids': [(4, user_id), (4, odoobot_id), (4, 3)],
-			# 		#'channel_partner_ids': [(4, 2), (4, odoobot_id)],
-			# 		'public': 'groups',
-			# 		'channel_type': 'channel',
-			# 		#'email_send': False,
-			# 		'name': f'Stock Persediaan',
-			# 		'display_name': f'Stock Persediaan',
-			# 	})
-
-			# message_text = f'<strong>Title</strong> ' \
-			# 			f'<p>This picking has been validated!</p>'
-
-
-			# # send a message to the related user
-			# channel.sudo().message_post(
-			# 	body=message_text,
-			# 	author_id=odoobot_id,
-			# 	message_type="notification",
-			# 	subtype_id=None,
-			# )
-			# ==========================================================================================
-			# ==========================================================================================
-			
-
-
-			# #purchase_group = self.env.ref('purchase.group_purchase_user')
-			# purchase_user = http.request.env['res.users'].search([('id', '=', 6)])
-			# notification_ids = []
-			# for purchase in purchase_user:
-			# 	notification_ids.append((0,0,{
-			# 	'res_partner_id':purchase.partner_id.id,
-			# 	'notification_type':'inbox'}))
-			# #(body=_('The backorder <a href=# data-oe-model=stock.picking data-oe-id=%d>%s</a> has been created.') % (backorder_picking.id, backorder_picking.name)
-			# http.request.env['stock.picking'].message_post(body='This receipt has been validated!', message_type='notification', subtype='mail.mt_comment', author_id='2', notification_ids=notification_ids)
-			# #http.request.env['stock.picking'].message_post(body=_('Test Aja') % (2, 'Mithcel'))
-
-
-			# notification_ids = [((0, 0, {
-			#    'res_partner_id': 6,
-			#    'notification_type': 'inbox'}))]
-			
-			# http.request.env['mail.message'].create({
-			#     'message_type': "notification",
-			#     'body': "Your Body",
-			#     'subject': "Your Subject",
-			#     'partner_ids': [(4, 6)],
-			#     # 'model': self._name,
-			#     # 'res_id': self.id,
-			#     'notification_ids': notification_ids,
-			#     'author_id': 2
-			# })
-
-			# user_id = 1
-			# message = "Nyoba aja"
-			# channel_id.message_post(author_id=user_id,
-			#                        body=(message),
-			#                        message_type='notification',
-			#                        subtype_xmlid="mail.mt_comment",
-			#                        notification_ids=notification_ids,
-			#                        partner_ids=[2],
-			#                        notify_by_email=False,
-			#                        )
-
 			# Get data product in Odoo
 			# getProducts = http.request.env['product.product'].search([])
 			# #
@@ -354,6 +157,34 @@ class RestApiProducts(http.Controller):
 
 
 class RestApiBrands(http.Controller):
+	@http.route('/restapi/shipper', auth='public')
+	def index(self, **kw):
+		headers = {
+			'api_key': 'Basic 15cb7ebf9-3dcc-h28s-b056-2522c1eed03e',
+			#'token': token,
+			'content-type': 'application/json'
+		}
+		body = {}
+		url = "https://sandbox-api.stagingapps.net/shipper/tracking-shipment-status?id=" + str(kw.get('id'))
+		response = requests.get(url, headers=headers, data=json.dumps(body))		        
+		if response.status_code == 200:
+			data = response.json()
+		else:
+			data = False
+
+
+
+		# Munculkan data di console browser
+		console = '<script>'
+		console += 'console.log(' + json.dumps(data) + ');'
+		#console += 'console.log(' + json.dumps(filters) + ');'
+		console += '</script>'
+
+		return console
+
+
+
+class RestApiBrands(http.Controller):
 	@http.route('/restapi/brands', auth='public')
 	def index(self, **kw):
 		headers = {
@@ -383,111 +214,56 @@ class RestApiBrands(http.Controller):
 			res = 'Error ' + str(response.status_code)
 
 
-		#SBX220925700158
-		#SBX220925900192
-		#SBX220926300241
-		#SBX220926300244
-		#SBX220926400247
-		#SBX220926300228
-		#SBX220926600271
+
+		# # ==========================================================================================
+		# # Set data Inbound dan Outbound di Jurnal untuk otomatisasi pembayaran PAID
+		# # ==========================================================================================
+		# journals = http.request.env['account.journal'].search([])
+
+		# for journal in journals:
+		# 	if journal.type == 'bank' or journal.type == 'cash':
+		# 		journal.inbound_payment_method_line_ids[0].sudo().write({'payment_account_id': journal.default_account_id.id})
+		# 		journal.outbound_payment_method_line_ids[0].sudo().write({'payment_account_id': journal.default_account_id.id})
+		# # ==========================================================================================
+
+		# # ==========================================================================================
+		# # Set data CoA Template ke Company baru
+		# # ==========================================================================================
+		# getCompany = http.request.env['res.company'].search([('id', '=', 8)], limit=1)
+		# print("Ini data Company : ", getCompany)
+		# data = http.request.env['account.chart.template'].search([], limit=1)
+		# print(data.name)
+		# # 11 disini pajak dan pembelian defaul, kalau dari contoh otomatisnya 11 jadi disamain 11 juga
+		# data._load(11,11,getCompany)
+		# # ==========================================================================================
+		
+
+		# ==========================================================================================
+		# Reset Data in Order
+		# ==========================================================================================
 		#getOrder = http.request.env['sale.order'].search([('name', '=', 'SBX220927200297')], limit=1)
-		getOrder = http.request.env['sale.order'].search([])
+		#getOrder = http.request.env['sale.order'].search([])
 		# print(getOrder)
-		getOrder.sudo().write({
-			'state': 'draft',
-		})
-
-		getInvoice = http.request.env['account.move'].search([])
-		# # # print(getOrder)
-		getInvoice.sudo().write({
-			'state': 'draft',
-		})
-
-
-		#getInvoice = http.request.env['account.move'].search([('id', '=', 26)], limit=1)
-		#print('name : ', getInvoice.invoice_line_ids[0].currency_id)
-
-		#id : 26
-		#date : 2022-09-27
-		#state : draft
-		#journal_id : account.journal(10,)
-		#move_type : out_invoice
-		#currency_id : res.currency(12,)
-
-		# newInvoice = http.request.env['account.move'].sudo().create({
-		# 	'date': '2022-09-27',
+		# getOrder.sudo().write({
 		# 	'state': 'draft',
-		# 	'journal_id': 10,
-		# 	'move_type': 'out_invoice',
-		# 	'currency_id': 12,
-		# 	'name': 'Hahahah',
 		# })
 
-		#currency_id : res.currency(12,)
-		#move_id : account.move(26,)
-
-		# invoice_lines = []
-		# for line in getOrder.order_line:
-		# 	vals = {
-		# 		'name': line.name,
-		# 		'price_unit': line.price_unit,
-		# 		'quantity': line.product_uom_qty,
-		# 		'product_id': line.product_id.id,
-		# 		'product_uom_id': line.product_uom.id,
-		# 		'tax_ids': [(6, 0, line.tax_id.ids)],
-		# 		'sale_line_ids': [(6, 0, [line.id])],
-		# 	}
-		# 	invoice_lines.append((0, 0, vals))
-
-		# newInvoice = http.request.env['account.move'].sudo().create({
-		# 	'ref': getOrder.client_order_ref,
-		# 	'move_type': 'out_invoice',
-		# 	'invoice_origin': getOrder.name,
-		# 	'invoice_user_id': getOrder.user_id.id,
-		# 	'partner_id': getOrder.partner_invoice_id.id,
-		# 	'currency_id': getOrder.pricelist_id.currency_id.id,
-		# 	'invoice_line_ids': invoice_lines,
-		# 	'company_id': getOrder.company_id.id,
-		# 	'name': 'Test Dulu',
-		# 	'journal_id': 10,
+		# ==========================================================================================
+		# Reset Data in Invoice
+		# ==========================================================================================	
+		#getInvoice = http.request.env['account.move'].search([])
+		# # # print(getOrder)
+		# getInvoice.sudo().write({
+		# 	'state': 'draft',
 		# })
 
 
-		# move = http.request.env['account.move'].sudo().create({
-		# 	'move_type': 'out_invoice',
-		# 	#'date': '2017-01-01',
-		# 	'partner_id': 9,
-		# 	#'invoice_date': fields.Date.from_string('2017-01-01'),
-		# 	'currency_id': 12,
-		# 	#'invoice_payment_term_id': self.pay_terms_a.id,
-		# 	'invoice_line_ids': [
-		# 		(0, None, {
-		# 		'name': 'OG GotBeef',
-		# 		'product_id': 11,
-		# 		'product_uom_id': 1,
-		# 		'quantity': 1.0,
-		# 		'price_unit': 15000.0,
-		# 		'tax_ids': [7, 8],
-		# 		'company_id': 2,
-		# 		})
-		# 		# (0, None, {
-		# 		# 'name': self.product_line_vals_2['name'],
-		# 		# 'product_id': self.product_line_vals_2['product_id'],
-		# 		# 'product_uom_id': self.product_line_vals_2['product_uom_id'],
-		# 		# 'quantity': self.product_line_vals_2['quantity'],
-		# 		# 'price_unit': self.product_line_vals_2['price_unit'],
-		# 		# 'tax_ids': self.product_line_vals_2['tax_ids'],
-		# 		# }),
-		# 	]
-		# })
-
-
-
+		
 
 		# Munculkan data di console browser
 		console = '<script>'
 		console += 'console.log(' + json.dumps(res) + ');'
-		console += 'console.log(' + json.dumps(filters) + ');'
+		#console += 'console.log(' + json.dumps(filters) + ');'
 		console += '</script>'
 
 		return console

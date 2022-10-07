@@ -13,7 +13,7 @@
                             <field name="sandbox_key" string="Api Key"/>
                             <field name="sandbox_id" string="Username"/>
                             <field name="sandbox_pw" string="Password" password="True"/>
-                            <button name="action_update_manual" class="oe_highlight" string="Update Manual" type="object"/>
+                            <!-- <button name="action_update_manual" class="oe_highlight" string="Update Manual" type="object"/> -->
                         </group>
                     </group>
                 </page>
