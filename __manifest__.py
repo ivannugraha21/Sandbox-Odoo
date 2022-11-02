@@ -22,7 +22,7 @@
     #
     'auto_install': True,
     # any module necessary for this one to work correctly
-    'depends': ['base', 'sale_management', 'sale', 'product', 'account_accountant', 'account', 'stock', 'purchase'],
+    'depends': ['base', 'sale_management', 'sale', 'stock', 'product', 'account_accountant', 'account', 'purchase'],
 
     # always loaded
     'data': [

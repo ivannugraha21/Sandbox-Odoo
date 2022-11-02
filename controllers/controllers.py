@@ -43,6 +43,25 @@ class RestApiCekData(http.Controller):
 
 
 
+class AccountingTest(http.Controller):
+	@http.route('/restapi/acc', auth='public', method=['POST'])
+	def index(self, **kw):
+		
+
+		accounting = http.request.env['account.chart.template'].search([])
+		print('===================================')
+		print('===================================')
+		print(accounting.country_id)
+		print('===================================')
+		print('===================================')
+			
+		# Show data in console browser
+		# console = '<script>'
+		# console += 'console.log(' + json.dumps(accounting) + ');'
+		# console += '</script>'
+
+		return 'Sucess!'
+		#return res
 
 class RestApiRequestToken(http.Controller):
 	@http.route('/restapi/reqtoken', auth='public', method=['POST'])

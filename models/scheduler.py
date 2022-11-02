@@ -517,11 +517,11 @@ class SchedulerSandbox(models.Model):
 			res = reversed(res['data'])
 			# Loop data from API
 
-			# Ambil 10 data aja buat nyoba dulu
+			#Ambil 10 data aja buat nyoba dulu
 			# array = []
 			# i = 0
 			# for data in res:
-			# 	if i < 10:
+			# 	if i < 40:
 			# 		array.append(data)
 			# 		i = i + 1
 			# 	else:
@@ -881,7 +881,12 @@ class SchedulerSandbox(models.Model):
 		# If the product is not available, send message to user
 		# If the product available, validate stock product
 		# ================================================================================================
+		
+
 		stock = http.request.env['stock.picking'].search([('origin', '=', order.name)], limit=1)
+		
+
+
 		if stock.products_availability_state != 'available':
 			msg = f'<strong>' + str(company.name) + ' - Info Stok</strong> ' \
 				f'<p>Order Pengiriman : ' + str(stock.origin) + '</p>' \
